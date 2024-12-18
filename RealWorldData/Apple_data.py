@@ -108,3 +108,8 @@ ax.set_xticklabels([str(y) for y in years], rotation=45)
 
 plt.tight_layout()
 plt.show()
+
+# Save to CSV
+yoy_data = pd.DataFrame(line_x, columns=['Time'])
+yoy_data['YoY_Growth'] = line_y
+yoy_data.to_csv("apple_yoy_growth.csv", index=False)
