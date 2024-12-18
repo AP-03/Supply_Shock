@@ -91,3 +91,10 @@ def plot_tsmc_growth():
 
     plt.tight_layout()
     plt.show()
+
+    # Save to CSV
+    yoy_data = pd.DataFrame(line_x, columns=['Time'])
+    yoy_data['YoY_Growth'] = line_y
+    yoy_data.to_csv("tsmc_yoy_growth.csv", index=False)
+
+plot_tsmc_growth()
