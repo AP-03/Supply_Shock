@@ -89,8 +89,8 @@ fig, ax = plt.subplots(figsize=(12, 6))
 ax.plot(line_x, line_y, color='black', marker='o', linewidth=1)
 
 # Formatting
-ax.set_title("Year-Over-Year (YoY) Quarterly Revenue Growth (No first point, no bars, no 2013, exclude 2012 Q4)")
-ax.set_xlabel("Time (Year with quarters as fractions)")
+ax.set_title("Tesla Year-Over-Year (YoY) Quarterly Revenue Growth")
+ax.set_xlabel("Time")
 ax.set_ylabel("YoY Growth (%)")
 ax.set_ylim(-80, 160)
 ax.axhline(0, color="black", linestyle="--", linewidth=1)
