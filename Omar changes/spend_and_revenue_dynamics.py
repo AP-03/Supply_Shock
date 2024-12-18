@@ -1,72 +1,49 @@
 import numpy as np
-import pandas as pd
-from scipy.integrate import solve_ivp
-from scipy.optimize import minimize
 import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
 
 # Load the data
-tsmc_yoy = pd.read_csv('tsmc_yoy_growth.csv')
-apple_yoy = pd.read_csv('apple_yoy_growth.csv')
+time_data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])  # Year number (now 10 years)
+spending_data = np.array([18.8, 21.4, 23.5, 27.18, 30.89, 30.39, 38.75, 41.39, 53.62, 68.27])  # Real spending data
+revenue_data = np.array([57.225, 47.694, 35.774, 33.694, 32.977, 29.257, 26.571, 24.140, 20.014, 17.426])  # Real revenue data (now 10 years)
 
-time_data = np.array(apple_yoy['Time'])  # Year number (now 10 years)
-spending_data = np.array(apple_yoy['YoY_Growth'])  # Real spending data
-revenue_data = np.array(tsmc_yoy['YoY_Growth'])  # Real revenue data (now 10 years)
+# Reverse the revenue data
+revenue_data = revenue_data[::-1]
+# Define the oscillatory ODE system
+def spending_revenue_dynamics_osc(t, y, a, K, b, c, d, e, f, omega):
+    S, R = y  # S: Consumer Spending, R: Supplier Revenue
+    dS_dt = a * S * (1 - S / K) - b * S * R + c * np.sin(omega * t)  # Spending with periodic forcing
+    dR_dt = d * S * R - e * R + f * np.cos(omega * t)  # Revenue with periodic forcing
+    return [dS_dt, dR_dt]
 
-print(time_data, spending_data, revenue_data)
-
-
-# System of ODEs with Gaussian shock for supply-demand dynamics
-def supply_demand_dynamics(t, y, r, K_S, alpha, delta, gamma, beta, m, shock_std_dev):
-    S, D = y
-    # Generate a random shock (Gaussian distributed noise)
-    shock = np.random.normal(0, shock_std_dev)  # Mean 0, standard deviation `shock_std_dev`
-    dS_dt = r * S * (1 - (S/K_S)) - (alpha * S * D) / (1 + (gamma*S)) + shock  # Spending dynamics with shock
-    dD_dt = (beta * S * D) / (1 + (delta*D)) - (m * D)  # Demand dynamics with shock (fixed order of operations)
-    return [dS_dt, dD_dt]
-
-# Solve the ODEs with given parameters
-def solve_model(params, shock_std_dev):
-    r, K_S, alpha, delta, gamma, beta, m = params
-    S0 = spending_data[0]
-    D0 = revenue_data[0]  # Assuming D is analogous to revenue
+# Solve the ODEs
+def solve_model_osc(params, t_span, y0):
+    a, K, b, c, d, e, f, omega = params
     sol = solve_ivp(
-        supply_demand_dynamics, 
-        [time_data[0], time_data[-1]], 
-        [S0, D0], 
-        args=(r, K_S, alpha, delta, gamma, beta, m, shock_std_dev), 
-        t_eval=time_data  # Ensure we evaluate only 10 points matching the data length
+        spending_revenue_dynamics_osc,
+        t_span,
+        y0,
+        args=(a, K, b, c, d, e, f, omega),
+        t_eval=np.linspace(t_span[0], t_span[1])
     )
-    return sol.y  # Returns simulated [S, D] over time
+    return sol.t, sol.y
 
-# Objective function to minimize (error between model and data)
-def objective(params, shock_std_dev):
-    S_sim, D_sim = solve_model(params, shock_std_dev)
-    error_S = np.sum((spending_data - S_sim) ** 2)
-    error_D = np.sum((revenue_data - D_sim) ** 2)
-    return error_S + error_D  # Total squared error
+# Initial conditions and parameters
+t_span = [0, 100]  # Time span (e.g., quarters)
+y0 = [100, 50]      # Initial spending and revenue levels
+params = [0.05, 500, 0.02, 10, 0.01, 0.05, 100, 0.5]  # [a, K, b, c, d, e, f, omega]
 
-# Initial parameter guesses: [r, K_S, alpha, delta, gamma, beta, m]
-initial_guess = [0.1, 100, 1, 2, 10, 1, 0.1]
-shock_std_dev = 1  # Standard deviation of the shock (controls the intensity of randomness)
+# Solve the model
+time, results = solve_model_osc(params, t_span, y0)
+spending, revenue = results
 
-# Perform optimization (minimizing the objective function)
-result = minimize(objective, initial_guess, args=(shock_std_dev,), method="Nelder-Mead")
-best_params = result.x
-print("Optimized Parameters:", best_params)
-
-# Solve the model with optimized parameters
-S_sim, R_sim = solve_model(best_params, shock_std_dev)
-
-# Plot real data vs simulated results
+# Plot results
 plt.figure(figsize=(10, 6))
-plt.plot(time_data, spending_data, 'bo-', label="Real Spending")
-plt.plot(time_data, S_sim, 'b--', label="Simulated Spending with Shock")
-plt.plot(time_data, revenue_data, 'go-', label="Real Revenue (Reversed)")
-plt.plot(time_data, R_sim, 'g--', label="Simulated Revenue with Shock")
-plt.xlabel("Time")
-plt.ylabel("Values (Billions)")
-plt.title("Real vs Simulated Spending and Revenue with Gaussian Shock")
+plt.plot(time, spending, label="Consumer Spending", color="b")
+plt.plot(time, revenue, label="Supplier Revenue", color="g")
+plt.xlabel("Time (Quarters)")
+plt.ylabel("Values")
+plt.title("Oscillatory Consumer Spending vs Supplier Revenue Dynamics")
 plt.legend()
 plt.grid()
 plt.show()
-
