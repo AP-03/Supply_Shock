@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.stats import pearsonr
-
+from scipy.signal import correlate
 
 # Helper function to process data
 def process_data(data, exclude_conditions=None):
@@ -107,91 +107,70 @@ common_time = np.intersect1d(tsmc_x, nvidia_x)
 tsmc_interp = np.interp(common_time, tsmc_x, tsmc_y)
 nvidia_interp = np.interp(common_time, nvidia_x, nvidia_y)
 
-# Calculate Pearson Correlation
-correlation, p_value = pearsonr(tsmc_interp, nvidia_interp)
+# --- Correlation of Direction of YoY Growth ---
+
+# Calculate the direction of change (1 for up, -1 for down, 0 for no change)
+tsmc_direction = np.sign(tsmc_interp)
+nvidia_direction = np.sign(nvidia_interp)
+
+# --- Cross-Correlation Analysis for Direction ---
+# Calculate cross-correlation to find lag
+lags = np.arange(-len(tsmc_direction) + 1, len(tsmc_direction))
+cross_corr = correlate(tsmc_direction, nvidia_direction, mode='full')
+max_corr_idx = np.argmax(cross_corr)
+max_corr = cross_corr[max_corr_idx]
+best_lag_max = lags[max_corr_idx]
 
 # Print results
-print(f"Pearson Correlation: {correlation:.2f}")
-print(f"P-value: {p_value:.2e}")
+print(f"Best Lag: {best_lag_max} Quarters")
+print(f"Maximum Cross-Correlation for Direction: {max_corr:.2f}")
 
-# # Supply-Demand Model Function
-# def supply_demand_odes(t, y, params):
-#     S, D = y  # Supply and Demand
-#     r, K, alpha, gamma, beta, delta, m = (
-#         params["r"], params["K"], params["alpha"], params["gamma"],
-#         params["beta"], params["delta"], params["m"]
-#     )
+# Shift arrays based on lag
+if best_lag_max > 0:
+    # NVIDIA lags TSMC: shift NVIDIA forward
+    nvidia_shifted = np.pad(nvidia_direction, (best_lag_max, 0), mode='constant', constant_values=0)[:len(tsmc_direction)]
+    tsmc_shifted = tsmc_direction
+elif best_lag_max < 0:
+    # NVIDIA leads TSMC: shift TSMC forward
+    tsmc_shifted = np.pad(tsmc_direction, (-best_lag_max, 0), mode='constant', constant_values=0)[:len(nvidia_direction)]
+    nvidia_shifted = nvidia_direction
+else:
+    # No lag adjustment needed
+    tsmc_shifted = tsmc_direction
+    nvidia_shifted = nvidia_direction
 
-#     # ODEs
-#     dS_dt = r * S * (1 - S / K) - (alpha * S / (1 + gamma * S)) * D
-#     dD_dt = (beta * S / (1 + delta * D)) * D - m * D
+# Calculate Pearson correlation for aligned directions
+valid_indices = ~np.isnan(tsmc_shifted) & ~np.isnan(nvidia_shifted)
+direction_correlation, direction_p_value = pearsonr(tsmc_shifted[valid_indices], nvidia_shifted[valid_indices])
 
-#     return [dS_dt, dD_dt]
+# Print results
+print(f"Direction Correlation: {direction_correlation:.2f}")
+print(f"P-value for Direction Correlation: {direction_p_value:.2e}")
 
-# # Parameters for the ODE model
-# params = {
-#     "r": 0.07,       # Supply growth rate
-#     "K": 2500,       # Carrying capacity
-#     "alpha": 1e-4,   # Supply depletion rate
-#     "gamma": 1e-4,   # Economies of scale
-#     "beta": 5e-5,    # Demand growth rate
-#     "delta": 0.01,   # Demand saturation factor
-#     "m": 0.0005      # Demand decay rate
-# }
+# --- Plotting Direction Correlation ---
+plt.figure(figsize=(14, 8))
 
-# # Initial Conditions and Time Span
-# initial_conditions = [1200, 500]  # Initial supply and demand
-# time_span = (0, len(common_time))  # Simulate over common time
-# time_eval = np.linspace(*time_span, len(common_time))
+# Plot the shifted directions for visualization
+plt.plot(common_time, tsmc_shifted, label="TSMC Direction of Change (Shifted)", color="blue", linestyle="--")
+plt.plot(common_time, nvidia_shifted, label="NVIDIA Direction of Change (Shifted)", color="green", linestyle="--")
 
-# # Solve the ODEs
-# solution = solve_ivp(
-#     supply_demand_odes, time_span, initial_conditions, t_eval=time_eval, args=(params,)
-# )
-# simulated_supply, simulated_demand = solution.y
+# Labels and legend
+plt.title(f"Direction of YoY Growth Changes (TSMC vs. NVIDIA, Lag = {best_lag_max} Quarters)")
+plt.xlabel("Time (Years)")
+plt.ylabel("Direction (1 = Up, -1 = Down, 0 = No Change)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
-# # Normalize Simulated Data for Comparison
-# simulated_supply = simulated_supply / max(simulated_supply) * max(tsmc_interp)
-# simulated_demand = simulated_demand / max(simulated_demand) * max(nvidia_interp)
-
-# # Plot Simulated and Actual Results
-# plt.figure(figsize=(14, 8))
-
-# # Actual TSMC
-# plt.plot(common_time, tsmc_interp, label="TSMC Actual YoY Growth", color="blue", linestyle="--")
-
-# # Actual NVIDIA
-# plt.plot(common_time, nvidia_interp, label="NVIDIA Actual YoY Growth", color="green", linestyle="--")
-
-# # Simulated TSMC Supply
-# plt.plot(common_time, simulated_supply, label="Simulated TSMC Supply", color="blue", linestyle="-")
-
-# # Simulated NVIDIA Demand
-# plt.plot(common_time, simulated_demand, label="Simulated NVIDIA Demand", color="green", linestyle="-")
-
-# plt.title("TSMC and NVIDIA YoY Growth vs Simulated Supply and Demand")
-# plt.xlabel("Time (Years)")
-# plt.ylabel("Values (Normalized)")
-# plt.legend()
-# plt.grid(True)
-# plt.tight_layout()
-# plt.show()
-
-
-
-# # Plotting the results
-# plt.figure(figsize=(14, 8))
-
-# # TSMC
-# plt.plot(tsmc_x, tsmc_y, label="TSMC Actual YoY Growth (Dashed)", color="blue", linestyle="--")
-
-# # NVIDIA
-# plt.plot(nvidia_x, nvidia_y, label="NVIDIA Actual YoY Growth (Dashed)", color="green", linestyle="--")
-
-# plt.title("TSMC and NVIDIA YoY Growth (Actual Data)")
-# plt.xlabel("Time (Years)")
-# plt.ylabel("YoY Growth (%)")
-# plt.legend()
-# plt.grid(True)
-# plt.tight_layout()
-# plt.show()
+# --- Cross-Correlation Visualization ---
+plt.figure(figsize=(12, 6))
+plt.plot(lags, cross_corr, label="Cross-Correlation (Direction)", color="purple")
+plt.axvline(best_lag_max, color="red", linestyle="--", label=f"Best Lag = {best_lag_max}")
+plt.title("Cross-Correlation of Direction of YoY Growth Changes")
+plt.xlabel("Lag (Quarters)")
+plt.ylabel("Cross-Correlation")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()

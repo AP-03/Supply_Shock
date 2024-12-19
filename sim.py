@@ -147,7 +147,7 @@ def supply_demand_model(t, y, params, monthly_shocks):
 # Add D_f (forecast) to state variables, start equal to D_total (700+600+400+550=2250)
 y0 = [1200, 900, 700, 600, 400, 550, 1.0, 20.0, 2250.0]
 
-t_span = (0, 730)
+t_span = (0, 200)
 t_eval = np.linspace(t_span[0], t_span[1], 300)
 
 solution = solve_ivp(
