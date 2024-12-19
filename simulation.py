@@ -3,21 +3,23 @@ import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 
 # ODE function defining the system of supply, demand, and price
-def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha):
+def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha,i):
     S, D, P = state  # Unpack the state vector
-
     
+    if i%1==0:
+        supply_shock = round(np.random.normal(shock_mean, shock_std),2)  # Non-positive supply shock
+        i+=1
+    i+=1
     # Generate shocks and noise
-    supply_shock = round(np.random.normal(shock_mean, shock_std),2)  # Non-positive supply shock
     demand_shock = np.random.normal(shock_mean, shock_std)  # Demand shock
     price_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     demand_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     supply_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     # Supply ODE
-    #print(supply_shock)
+    print(i)
     if t>=10 and t<=30:
         damping_factor = 1 / (1 + S)
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S * supply_shock * 1 / (1 + S)    #+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S * supply_shock    #+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
         #print(dS_dt)
     else:
         dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
@@ -44,21 +46,22 @@ r_d = 0.15
 beta_s =0.1
 beta_d =0.02
 shock_mean =0.5
-shock_std =0.01
+shock_std =0.1
 noise_std =0.02
 gamma       =0.2
-n_simulations   =100
+n_simulations   =1
 S_pre_shock=state0[0]
 alpha=0.01
 alpha_s=0.2
 gamma_s=0.2
 gamma_d=0.15
 K=5000
+i=0
 
  # Non-positive supply shock
 for _ in range(n_simulations):
     # Solve the system using odeint
-    result = odeint(system_ODE, state0, t, args=(r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha))
+    result = odeint(system_ODE, state0, t, args=(r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha,i))
 
 
     # Extract supply, demand, and price from the result
