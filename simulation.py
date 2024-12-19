@@ -15,10 +15,9 @@ def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_
     supply_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     # Supply ODE
     #print(supply_shock)
-    if t>=10 and t<=30:
-        damping_factor = 1 / (1 + S)
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S * supply_shock * 1 / (1 + S)    #+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
-        #print(dS_dt)
+    if t>=10 and t<=40:
+        damping_factor = 1 / (1 + 0.1*S)
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S * supply_shock * damping_factor   #+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
     else:
         dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
     # Demand ODE
@@ -30,7 +29,7 @@ def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_
     return [dS_dt, dD_dt, dP_dt]
 
 # Parameters for simulation
-T = 48  # Total time in months
+T = 60  # Total time in months
 n_points = 1000  # Number of time points
 t = np.linspace(0, T, n_points)  # Time grid
 state0 = [5000, 5000, 100]  # Initial conditions
