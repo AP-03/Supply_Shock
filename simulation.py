@@ -8,7 +8,7 @@ def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_
 
     
     # Generate shocks and noise
-    supply_shock = np.random.normal(shock_mean, shock_std)  # Non-positive supply shock
+    supply_shock = round(np.random.normal(shock_mean, shock_std),2)  # Non-positive supply shock
     demand_shock = np.random.normal(shock_mean, shock_std)  # Demand shock
     price_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     demand_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
@@ -16,7 +16,7 @@ def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_
     # Supply ODE
     print(supply_shock)
     if t>=10 and t<=30:
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*0.5#*supply_shock#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*supply_shock#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
     else:
         dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
     # Demand ODE
@@ -42,7 +42,7 @@ r_d = 0.15
 beta_s =0.1
 beta_d =0.02
 shock_mean =0.5
-shock_std =0.1
+shock_std =0.01
 noise_std =0.02
 gamma       =0.2
 n_simulations   =100
