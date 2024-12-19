@@ -14,9 +14,11 @@ def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_
     demand_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     supply_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     # Supply ODE
-    print(supply_shock)
+    #print(supply_shock)
     if t>=10 and t<=30:
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*supply_shock#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        damping_factor = 1 / (1 + S)
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S * supply_shock * 1 / (1 + S)    #+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        #print(dS_dt)
     else:
         dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
     # Demand ODE
