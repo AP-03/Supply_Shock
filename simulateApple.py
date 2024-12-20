@@ -16,12 +16,14 @@ def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_
     demand_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     supply_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     # Supply ODE
-    if t>=0 and t<=30 or t>=45 and t<=120:
-        damping_factor = 1 / (1 + S)
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*1.2+S    #+0.8*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
-        #print(dS_dt)
+    if t >= 10 and t < 35:
+        dS_dt = (r_s * S * (1 - S / K) + ((alpha_s * S) / (1 + gamma_s * S)) * D) - S * 1.1 + S
+    elif t >= 35 and t < 45:
+        dS_dt = (r_s * S * (1 - S / K) + ((alpha_s * S) / (1 + gamma_s * S)) * D) - S * 1.5 + S
+    elif t >= 55:
+        dS_dt = (r_s * S * (1 - S / K) + ((alpha_s * S) / (1 + gamma_s * S)) * D) - S * 3 + S
     else:
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)+D#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        dS_dt = (r_s * S * (1 - S / K) + ((alpha_s * S) / (1 + gamma_s * S)) * D) + D
     # Demand ODE
     dD_dt = (r_d * D*beta_s*S)/(1+gamma_d*D) - D*beta_d*(P-100)#+0.1*demand_noise# + demand_shock
 
@@ -43,7 +45,7 @@ all_price = []
 r_s = 0.15
 r_d = 0.2
 beta_s =0.1
-beta_d =0.05
+beta_d =0.3
 shock_mean =0.8
 shock_std =0.5
 noise_std =0.02
@@ -107,25 +109,6 @@ ax1.set_ylabel("Revenue growth rate (%)")
 ax1.set_title("Simulation Demonstration: Percentage changes in Supply and Demand")
 ax1.legend()
 ax1.grid()
-
-# Plot percentage change in price
-fig, ax2 = plt.subplots(figsize=(12, 6))
-ax2.plot(t, avg_price, label="Price Index", color="red")
-ax2.set_xlabel("Time (Months)")
-ax2.set_ylabel("Price Index")
-ax2.set_title("Simulation Demonstration: Percentage Change in Price")
-ax2.legend()
-ax2.grid()
-
-# Plot supply and demand over time
-fig, ax3 = plt.subplots(figsize=(12, 6))
-ax3.plot(t, avg_supply, label="Supplier Revenue", color="green")
-ax3.plot(t, avg_demand, label="Consumer Revenue", color="blue")
-ax3.set_xlabel("Time (Months)")
-ax3.set_ylabel("Revenue")
-ax3.set_title("Simulation Demonstration: Supply shocks affect on Consumers")
-ax3.legend()
-ax3.grid()
 
 plt.show()
 
@@ -239,22 +222,18 @@ aligned_demand = demand_interp_func(common_time)
 
 # Normalize the simulated data to the YoY Growth scale
 normalized_supply = (aligned_supply / np.max(aligned_supply)) * 100
-normalized_demand = (aligned_demand / np.max(aligned_demand)) * 100
+normalized_demand = ((aligned_demand / np.max(aligned_demand)) * 100) / 2.5
 
 # Plot combined data
 plt.figure(figsize=(14, 8))
 
 # Plot interpolated YoY growth data
-plt.plot(common_time, tsmc_interp, label="TSMC YoY Growth", color="blue", linestyle="--")
+# plt.plot(common_time, tsmc_interp, label="TSMC YoY Growth", color="blue", linestyle="--")
 plt.plot(common_time, apple_interp, label="Apple YoY Growth", color="green", linestyle="--")
 
 # Overlay simulated normalized growth
-plt.plot(common_time - 0.8, normalized_supply, label="Simulated Supplier Revenue Growth (%)", color="red", linestyle="--")
-plt.plot(common_time - 0.8, normalized_demand, label="Simulated Consumer Revenue Growth (%)", color="orange", linestyle="--")
-
-# Overlay original actual data points
-plt.scatter(tsmc_x, tsmc_y, color="blue", label="TSMC Actual Data Points", alpha=0.5)
-plt.scatter(apple_x, apple_y, color="green", label="Apple Actual Data Points", alpha=0.5)
+plt.plot(common_time, normalized_supply, label="Simulated Supplier Revenue Growth (%)", color="red", linestyle="--")
+plt.plot(common_time, normalized_demand + 40, label="Simulated Consumer Revenue Growth (%)", color="orange", linestyle="--")
 
 # Add labels, title, and legend
 plt.title("Combined Actual and Simulated YoY Growth: TSMC and Apple")
