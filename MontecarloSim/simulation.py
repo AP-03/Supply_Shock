@@ -3,27 +3,21 @@ import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 
 # ODE function defining the system of supply, demand, and price
-def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha,supply_shock):
+def system_ODE(state, t, r_s, r_d, beta_s, beta_d,alpha,supply_shock):
     S, D, P = state  # Unpack the state vector
-    
-    #supply_shock = round(np.random.normal(shock_mean, shock_std),2)  # Non-positive supply shock
-    # Generate shocks and noise
-    demand_shock = np.random.normal(shock_mean, shock_std)  # Demand shock
-    price_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
-    demand_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
-    supply_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
+
     # Supply ODE
     if t>=10 and t<=30:
         damping_factor = 1 / (1 + S)
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*supply_shock#+0.8*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*supply_shock+S
         #print(dS_dt)
     else:
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)
     # Demand ODE
-    dD_dt = (r_d * D*beta_s*S)/(1+gamma_d*D) - D*beta_d*(P-100)#+0.1*demand_noise# + demand_shock
+    dD_dt = (r_d * D*beta_s*S)/(1+gamma_d*D) - D*beta_d*(P-100)
 
     # Price ODE
-    dP_dt = alpha*(D - S)/P#+ 0.001*price_noise  # Price adjusts based on supply-demand imbalance
+    dP_dt = alpha*(D - S)/P
 
     return [dS_dt, dD_dt, dP_dt]
 
@@ -37,16 +31,13 @@ state0 = [5000, 5000, 100]  # Initial conditions
 all_supply = []
 all_demand = []
 all_price = []
-r_s = 0.15
-r_d = 0.2
-beta_s =0.1
+r_s = 1.5
+r_d = 1
+beta_s =0.05
 beta_d =0.05
-shock_mean =0.8
-shock_std =0.4
-noise_std =0.02
-gamma       =0.2
+shock_mean =1.5
+shock_std =0.2
 n_simulations   =100
-S_pre_shock=state0[0]
 alpha=0.01
 alpha_s=0.2
 gamma_s=0.2
@@ -59,7 +50,8 @@ best=0
 for _ in range(n_simulations):
     # Solve the system using odeint
     supply_shock = round(np.random.normal(shock_mean, shock_std),2)  # Non-positive supply shock
-    result = odeint(system_ODE, state0, t, args=(r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha,supply_shock))
+    result = odeint(system_ODE, state0, t, args=(r_s, r_d, beta_s, beta_d,alpha,supply_shock))
+
     if supply_shock<worst:
         worst=supply_shock
         supply_worst = result[:, 0]
@@ -127,7 +119,7 @@ ax1.plot(t[0::2], percent_change_supply, label="Percentage Change in Supply", co
 ax1.plot(t[0::2], percent_change_demand, label="Percentage Change in Demand", color="blue")
 ax1.set_xlabel("Time (Months)")
 ax1.set_ylabel("Revenue growth rate (%)")
-ax1.set_title("Simulation Demonstration: Percentage changes in Supply and Demand")
+ax1.set_title("Simulation Demonstration: Revenue growth rate of average case")
 ax1.legend()
 ax1.grid()
 
@@ -136,7 +128,7 @@ fig, ax2 = plt.subplots(figsize=(12, 6))
 ax2.plot(t, avg_price, label="Price Index", color="red")
 ax2.set_xlabel("Time (Months)")
 ax2.set_ylabel("Price Index")
-ax2.set_title("Simulation Demonstration: Percentage Change in Price")
+ax2.set_title("Simulation Demonstration: Percentage Change in Price of average case")
 ax2.legend()
 ax2.grid()
 
@@ -146,7 +138,7 @@ ax3.plot(t, avg_supply, label="Supplier Revenue", color="green")
 ax3.plot(t, avg_demand, label="Consumer Revenue", color="blue")
 ax3.set_xlabel("Time (Months)")
 ax3.set_ylabel("Revenue Index")
-ax3.set_title("Simulation Demonstration: Supply shocks affect on Consumers")
+ax3.set_title("Simulation Demonstration: Supply shocks affect on Consumers of average case")
 ax3.legend()
 ax3.grid()
 
@@ -157,7 +149,7 @@ ax1.plot(t[0::2], percent_change_supply_best, label="Percentage Change in Supply
 ax1.plot(t[0::2], percent_change_demand_best, label="Percentage Change in Demand", color="blue")
 ax1.set_xlabel("Time (Months)")
 ax1.set_ylabel("Revenue growth rate (%)")
-ax1.set_title("Simulation Demonstration: Percentage changes in Supply and Demand worst")
+ax1.set_title("Simulation Demonstration: Revenue growth rate of worst case ")
 ax1.legend()
 ax1.grid()
 
@@ -166,7 +158,7 @@ fig, ax2 = plt.subplots(figsize=(12, 6))
 ax2.plot(t, price_best, label="Price Index", color="red")
 ax2.set_xlabel("Time (Months)")
 ax2.set_ylabel("Price Index")
-ax2.set_title("Simulation Demonstration: Percentage Change in Price worst")
+ax2.set_title("Simulation Demonstration: Percentage Change in Price of worst case")
 ax2.legend()
 ax2.grid()
 
@@ -176,7 +168,7 @@ ax3.plot(t, supply_best, label="Supplier Revenue", color="green")
 ax3.plot(t, demand_best, label="Consumer Revenue", color="blue")
 ax3.set_xlabel("Time (Months)")
 ax3.set_ylabel("Revenue")
-ax3.set_title("Simulation Demonstration: Supply shocks affect on Consumers worst")
+ax3.set_title("Simulation Demonstration: Supply shocks affect on Consumers of worst case")
 ax3.legend()
 ax3.grid()
 
@@ -187,7 +179,7 @@ ax1.plot(t[0::2], percent_change_supply_worst, label="Percentage Change in Suppl
 ax1.plot(t[0::2], percent_change_demand_worst, label="Percentage Change in Demand", color="blue")
 ax1.set_xlabel("Time (Months)")
 ax1.set_ylabel("Revenue growth rate (%)")
-ax1.set_title("Simulation Demonstration: Percentage changes in Supply and Demand best")
+ax1.set_title("Simulation Demonstration: Revenue growth rate of best case")
 ax1.legend()
 ax1.grid()
 
@@ -196,7 +188,7 @@ fig, ax2 = plt.subplots(figsize=(12, 6))
 ax2.plot(t, price_worst, label="Price Index", color="red")
 ax2.set_xlabel("Time (Months)")
 ax2.set_ylabel("Price Index")
-ax2.set_title("Simulation Demonstration: Percentage Change in Price best")
+ax2.set_title("Simulation Demonstration: Percentage Change in Price of best case")
 ax2.legend()
 ax2.grid()
 
@@ -206,7 +198,7 @@ ax3.plot(t, supply_worst, label="Supplier Revenue", color="green")
 ax3.plot(t, demand_worst, label="Consumer Revenue", color="blue")
 ax3.set_xlabel("Time (Months)")
 ax3.set_ylabel("Revenue")
-ax3.set_title("Simulation Demonstration: Supply shocks affect on Consumers best")
+ax3.set_title("Simulation Demonstration: Supply shocks affect on Consumers of best case")
 ax3.legend()
 ax3.grid()
 

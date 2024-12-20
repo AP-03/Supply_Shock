@@ -6,29 +6,21 @@ from scipy.interpolate import interp1d
 
 
 # ODE function defining the system of supply, demand, and price
-def system_ODE(state, t, r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha,supply_shock):
+def system_ODE(state, t, r_s, r_d, beta_s, beta_d,alpha,supply_shock):
     S, D, P = state  # Unpack the state vector
     
-    #supply_shock = round(np.random.normal(shock_mean, shock_std),2)  # Non-positive supply shock
-    # Generate shocks and noise
-    demand_shock = np.random.normal(shock_mean, shock_std)  # Demand shock
-    price_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
-    demand_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
-    supply_noise = np.random.normal(0, noise_std)  # Noise in price adjustment
     # Supply ODE
     if t>=20 and t<=35:
-        damping_factor = 1 / (1 + S)
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*supply_shock    #+0.8*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
-        #print(dS_dt)
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*supply_shock
     elif t>=45 and t<=50:
         dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D) - S*1
     else:
-        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)#+0.1*supply_noise# - abs(supply_shock) #+ gamma * max(0, S_pre_shock - S)#+0.5*supply_noise
+        dS_dt = (r_s * S*(1-S/K) + ((alpha_s *S)/(1+gamma_s*S))*D)
     # Demand ODE
-    dD_dt = (r_d * D*beta_s*S)/(1+gamma_d*D) - D*beta_d*(P-100)#+0.1*demand_noise# + demand_shock
+    dD_dt = (r_d * D*beta_s*S)/(1+gamma_d*D) - D*beta_d*(P-100)
 
     # Price ODE
-    dP_dt = alpha*(D - S)/P#+ 0.001*price_noise  # Price adjusts based on supply-demand imbalance
+    dP_dt = alpha*(D - S)/P
 
     return [dS_dt, dD_dt, dP_dt]
 
@@ -48,10 +40,7 @@ beta_s =0.1
 beta_d =0.1
 shock_mean =0.8
 shock_std =0.4
-noise_std =0.02
-gamma       =0.2
 n_simulations   =100
-S_pre_shock=state0[0]
 alpha=0.01
 alpha_s=0.2
 gamma_s=0.2
@@ -64,7 +53,7 @@ best=0
 for _ in range(n_simulations):
     # Solve the system using odeint
     supply_shock = round(np.random.normal(shock_mean, shock_std),2)  # Non-positive supply shock
-    result = odeint(system_ODE, state0, t, args=(r_s, r_d, beta_s, beta_d, shock_mean, shock_std, noise_std, gamma, S_pre_shock,alpha,supply_shock))
+    result = odeint(system_ODE, state0, t, args=(r_s, r_d, beta_s, beta_d,alpha,supply_shock))
 
 
     # Extract supply, demand, and price from the result
